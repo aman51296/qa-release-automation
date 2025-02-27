@@ -1,0 +1,97 @@
+name: Automate QA Release Flow
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  promote-to-interim:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Fetch Latest Changes
+        run: git fetch origin
+
+      - name: Create/Update Interim Branch
+        run: |
+          if git ls-remote --heads origin interim-qa | grep interim-qa; then
+            git checkout interim-qa
+            git merge origin/dev --no-edit
+          else
+            git checkout -b interim-qa origin/dev
+          fi
+          git push origin interim-qa
+
+      - name: Tag Latest Tested Commit
+        run: |
+          LATEST_COMMIT=$(git rev-parse --short HEAD)
+          git tag -a "v0.1.0-tested-${LATEST_COMMIT}" -m "Tested in interim-qa" # Tag with 'v' and pre-release
+          git push origin --tags
+
+  generate-release-notes:
+    needs: promote-to-interim
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Generate Release Notes
+        run: |
+          git fetch origin
+          echo "## Release Notes (Dev → Interim-QA)" > release_notes.md
+          echo "**Date:** $(date)" >> release_notes.md
+          echo "**Commits Included:**" >> release_notes.md
+          git log --oneline origin/dev..origin/interim-qa >> release_notes.md
+
+      - name: Upload Release Notes
+        uses: actions/upload-artifact@v4 # Updated to v4
+        with:
+          name: release-notes
+          path: release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "v0.1.0-release-interim-qa-${{ github.run_number }}" # Tag with 'v' and pre-release
+          name: "Interim QA Release ${{ github.run_number }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  promote-to-qa:
+    needs: generate-release-notes
+    runs-on: ubuntu-latest
+    environment: qa # Requires manual approval
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Set Git Identity
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Check for Merge Conflicts
+        run: |
+          git fetch origin
+          git checkout interim-qa
+          if ! git merge origin/qa --no-edit; then
+            echo "Merge conflict detected! Please resolve manually."
+            exit 1
+          fi
+
+      - name: Merge to QA
+        run: |
+          git checkout qa
+          git merge origin/interim-qa --no-edit
+          git push origin qa
