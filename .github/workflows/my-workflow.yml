@@ -29,7 +29,7 @@ jobs:
           else
             git checkout -b interim-qa origin/dev
           fi
-          git push origin interim-qa --force  # ✅ FIX: Use --force push
+          git push origin interim-qa --force
 
       - name: Tag Latest Tested Commit
         run: |
@@ -53,7 +53,7 @@ jobs:
           git log --oneline origin/dev..origin/interim-qa >> release_notes.md
 
       - name: Upload Release Notes
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: release-notes
           path: release_notes.md
@@ -67,12 +67,12 @@ jobs:
           draft: false
           prerelease: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ FIX: Ensure write permission is enabled in settings
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   promote-to-qa:
     needs: generate-release-notes
     runs-on: ubuntu-latest
-    environment: qa # Requires manual approval
+    environment: qa
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
