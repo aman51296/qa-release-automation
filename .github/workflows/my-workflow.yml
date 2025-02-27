@@ -16,6 +16,7 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/aman51296/qa-release-automation.git
 
       - name: Fetch Latest Changes
         run: git fetch origin
@@ -25,11 +26,10 @@ jobs:
           if git ls-remote --heads origin interim-qa | grep interim-qa; then
             git checkout interim-qa
             git merge origin/dev --allow-unrelated-histories --no-edit
-
           else
             git checkout -b interim-qa origin/dev
           fi
-          git push origin interim-qa
+          git push origin interim-qa --force  # ✅ FIX: Use --force push
 
       - name: Tag Latest Tested Commit
         run: |
@@ -67,7 +67,7 @@ jobs:
           draft: false
           prerelease: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ FIX: Ensure write permission is enabled in settings
 
   promote-to-qa:
     needs: generate-release-notes
