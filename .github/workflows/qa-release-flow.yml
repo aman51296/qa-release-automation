@@ -24,7 +24,7 @@ jobs:
         run: |
           if git ls-remote --heads origin interim-qa | grep interim-qa; then
             git checkout interim-qa
-            git merge origin/dev --no-edit
+            git reset --hard origin/dev
           else
             git checkout -b interim-qa origin/dev
           fi
