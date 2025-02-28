@@ -28,6 +28,7 @@ jobs:
           else
             git checkout -b interim-qa origin/dev
           fi
+          git pull origin interim-qa  # Added this line
           git push origin interim-qa
 
       - name: Tag Latest Tested Commit
