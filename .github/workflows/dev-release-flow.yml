@@ -5,6 +5,8 @@ on:
     branches:
       - dev-aman
 
+
+      #jobs are running
 jobs:
   check-commit-message:
     runs-on: ubuntu-latest
