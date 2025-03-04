@@ -33,21 +33,28 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch Latest Commits
+        run: |
+          git fetch --all --tags
+
+      - name: Debug Git Log
+        run: |
+          echo "Recent Commits:"
+          git log --oneline -5
+
       - name: Debug Commit Range
         run: |
-          git fetch origin
           echo "## Debug Info" > debug_info.txt
-          echo "**Commit Range:** origin/dev-aman..HEAD" >> debug_info.txt
+          echo "**Commit Range:** HEAD~5..HEAD" >> debug_info.txt
           echo "**Fetched Commits:**" >> debug_info.txt
-          git log --pretty=format:"- %h: %s" origin/dev-aman..HEAD >> debug_info.txt
+          git log --oneline HEAD~5..HEAD >> debug_info.txt
 
       - name: Generate Release Notes
         run: |
-          git fetch origin
           echo "## Release Notes (Dev-Aman)" > release_notes.md
           echo "**Date:** $(date)" >> release_notes.md
           echo "**Commits Included:**" >> release_notes.md
-          git log --pretty=format:"- %h: %s" origin/dev-aman..HEAD >> release_notes.md
+          git log --oneline HEAD~5..HEAD >> release_notes.md
 
       - name: Upload Debug Info
         uses: actions/upload-artifact@v4
