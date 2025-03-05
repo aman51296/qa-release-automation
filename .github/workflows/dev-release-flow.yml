@@ -7,48 +7,41 @@ on:
 
 jobs:
   check-commit-message:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Ensure Commit Message
         run: |
           COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
           if [ -z "$COMMIT_MESSAGE" ]; then
-            echo "❌ Commit message is required."
+            echo "Commit message is required."
             exit 1
           else
-            echo "✅ Commit message: $COMMIT_MESSAGE"
+            echo "Commit message: $COMMIT_MESSAGE"
           fi
 
   generate-release-notes:
     needs: check-commit-message
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Fetch Latest Commits
         run: git fetch --all --tags
-
       - name: Generate Release Notes
         run: |
           BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
           DATE=$(date +'%Y-%m-%d')
           RELEASE_NAME="${BRANCH_NAME}-${DATE}"
-         
-          echo "## 🚀 Release Notes ($RELEASE_NAME)" > release_notes.md
-          echo "**📅 Date:** $(date)" >> release_notes.md
-          echo "**🔹 Commits Included:**" >> release_notes.md
-          git log --pretty=format:"- %s" >> release_notes.md
-         
-          cat release_notes.md  # Print for debugging
-
+          echo "## Release Notes ($RELEASE_NAME)" > release_notes.md
+          echo "**Date:** $(date)" >> release_notes.md
+          echo "**Commits Included:**" >> release_notes.md
+          git log --pretty=format:"%s" >> release_notes.md
       - name: Upload Release Notes
         uses: actions/upload-artifact@v4
         with:
@@ -57,24 +50,22 @@ jobs:
 
   create-release:
     needs: generate-release-notes
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Download Release Notes
         uses: actions/download-artifact@v4
         with:
           name: release-notes
-
+          path: .
       - name: Create Tag
         run: |
           TAG_NAME="${{ github.ref_name }}-${{ github.run_number }}"
           git tag "$TAG_NAME"
           git push origin "$TAG_NAME"
-
       - name: Create GitHub Release
         uses: actions/create-release@v1
         with:
