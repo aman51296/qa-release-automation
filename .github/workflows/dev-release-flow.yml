@@ -1,4 +1,4 @@
-name: Dev Release Workflow
+name: Dev Release Workflow 
 
 on:
   push:
@@ -16,9 +16,50 @@ jobs:
 
       - name: Ensure Commit Message
         run: |
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
           if [ -z "$COMMIT_MESSAGE" ]; then
             echo "Commit message is required."
             exit 1
           else
-            echo "Commit message: $COM
+            echo "Commit message: $COMMIT_MESSAGE"
+          fi
+
+  generate-release-notes:
+    needs: check-commit-message
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Latest Commits
+        run: git fetch --all --tags
+
+      - name: Generate Release Notes
+        run: |
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+          DATE=$(date +'%Y-%m-%d')
+          RELEASE_NAME="${BRANCH_NAME}-${DATE}"
+
+          echo "## Release Notes ($RELEASE_NAME)" > release_notes.md
+          echo "**Date:** $(date)" >> release_notes.md
+          echo "**Commits Included:**" >> release_notes.md
+          git log --pretty=format:"%s" >> release_notes.md  # Only commit messages, no commit IDs
+
+      - name: Upload Release Notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "${{ github.ref_name }}-${{ github.run_number }}"
+          name: "${{ github.ref_name }}-${{ github.run_number }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
