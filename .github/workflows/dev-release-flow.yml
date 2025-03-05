@@ -55,7 +55,7 @@ jobs:
 
       - name: Generate Release Notes
         run: |
-          echo "## Release Notes (${GITHUB_ENV[release_tag]})" > release_notes.md
+          echo "## Release Notes (${{ env.release_tag }})" > release_notes.md
           echo "**Date:** $(date)" >> release_notes.md
           echo "**Commits Included:**" >> release_notes.md
           git log --pretty=format:"%s" origin/dev-aman..HEAD >> release_notes.md
